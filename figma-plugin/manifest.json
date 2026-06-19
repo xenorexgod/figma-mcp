@@ -7,10 +7,9 @@
   "editorType": ["figma"],
   "networkAccess": {
     "allowedDomains": [
-      "http://127.0.0.1:4877",
-      "ws://127.0.0.1:4877",
-      "https://*.onrender.com",
-      "wss://*.onrender.com"
-    ]
+      "https://figma-mcp-hthg.onrender.com",
+      "wss://figma-mcp-hthg.onrender.com"
+    ],
+    "reasoning": "Connects the Figma plugin UI to the hosted Suits Figma MCP bridge on Render."
   }
 }
