@@ -1,0 +1,11 @@
+{
+  "name": "Suits Deck Bridge",
+  "id": "suits-deck-bridge",
+  "api": "1.0.0",
+  "main": "code.ts",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["http://127.0.0.1:4877", "ws://127.0.0.1:4877"]
+  }
+}
