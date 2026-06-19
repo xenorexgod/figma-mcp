@@ -1,0 +1,15 @@
+{
+  "name": "suits-figma-mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server and local bridge for creating and exporting Suits Workspaces Figma pitch deck frames.",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "node src/index.ts",
+    "dev": "node --watch src/index.ts"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
