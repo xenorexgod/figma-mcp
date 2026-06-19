@@ -8,7 +8,7 @@ let currentTheme = {
   muted: "#A7A7A7"
 };
 
-figma.ui.onmessage = async (message) => {
+figma.ui.onmessage = async function (message) {
   try {
     if (message.command === "createDeck") {
       const result = await createDeck(message.payload);
@@ -28,7 +28,7 @@ figma.ui.onmessage = async (message) => {
       return;
     }
 
-    throw new Error(`Unknown command: ${message.command}`);
+    throw new Error("Unknown command: " + message.command);
   } catch (error) {
     figma.ui.postMessage({
       id: message.id,
@@ -50,7 +50,7 @@ async function createDeck(payload) {
   section.x = figma.viewport.center.x - 640;
   section.y = figma.viewport.center.y - 360;
 
-  payload.slides.forEach((slide, index) => {
+  payload.slides.forEach(function (slide, index) {
     const frame = buildSlideFrame(slide, index, payload.theme);
     frame.x = index * 1360;
     frame.y = 0;
@@ -60,13 +60,17 @@ async function createDeck(payload) {
 
   section.resizeWithoutConstraints(Math.max(1280, payload.slides.length * 1360), 840);
   figma.currentPage.selection = generatedFrameIds
-    .map((id) => figma.getNodeById(id))
-    .filter((node) => node && node.type === "FRAME");
+    .map(function (id) {
+      return figma.getNodeById(id);
+    })
+    .filter(function (node) {
+      return node && node.type === "FRAME";
+    });
   figma.viewport.scrollAndZoomIntoView(figma.currentPage.selection);
 
   return {
     deckName: payload.name,
-    frameIds: [...generatedFrameIds],
+    frameIds: generatedFrameIds.slice(),
     slideCount: generatedFrameIds.length
   };
 }
@@ -78,11 +82,13 @@ async function updateSlide(payload) {
     title: getPluginData(frame, "title"),
     subtitle: getPluginData(frame, "subtitle"),
     body: JSON.parse(getPluginData(frame, "body") || "[]"),
-    layout: getPluginData(frame, "layout") || "content",
-    ...payload.slide
+    layout: getPluginData(frame, "layout") || "content"
   };
+  mergeSlide(nextSlide, payload.slide);
 
-  frame.children.slice().forEach((child) => child.remove());
+  frame.children.slice().forEach(function (child) {
+    child.remove();
+  });
   applySlideContent(frame, nextSlide, slideIndex, currentTheme);
   setSlidePluginData(frame, nextSlide);
 
@@ -94,17 +100,18 @@ async function updateSlide(payload) {
 }
 
 async function exportFrames(payload) {
-  const ids = payload.frameIds?.length ? payload.frameIds : generatedFrameIds;
-  const frames = ids.map((id) => {
+  const ids = payload.frameIds && payload.frameIds.length ? payload.frameIds : generatedFrameIds;
+  const frames = ids.map(function (id) {
     const node = figma.getNodeById(id);
     if (!node || node.type !== "FRAME") {
-      throw new Error(`Frame not found: ${id}`);
+      throw new Error("Frame not found: " + id);
     }
     return node;
   });
 
   const exported = [];
-  for (const frame of frames) {
+  for (let frameIndex = 0; frameIndex < frames.length; frameIndex += 1) {
+    const frame = frames[frameIndex];
     const bytes = await frame.exportAsync({
       format: payload.format,
       constraint: payload.format === "SVG" || payload.format === "PDF"
@@ -125,7 +132,7 @@ async function exportFrames(payload) {
 
 function buildSlideFrame(slide, index, theme) {
   const frame = figma.createFrame();
-  frame.name = `${String(index + 1).padStart(2, "0")} - ${slide.title || "Untitled"}`;
+  frame.name = padSlideNumber(index + 1) + " - " + (slide.title || "Untitled");
   frame.resize(1280, 720);
   frame.fills = [{ type: "SOLID", color: hexToRgb(theme.background) }];
   frame.clipsContent = true;
@@ -143,7 +150,7 @@ function applySlideContent(frame, slide, index, theme) {
   accentBar.fills = [{ type: "SOLID", color: hexToRgb(theme.accent) }];
   frame.appendChild(accentBar);
 
-  const eyebrow = createText(`SUITS WORKSPACES  /  ${String(index + 1).padStart(2, "0")}`, 16, theme.muted, "Regular");
+  const eyebrow = createText("SUITS WORKSPACES  /  " + padSlideNumber(index + 1), 16, theme.muted, "Regular");
   eyebrow.x = 120;
   eyebrow.y = 86;
   eyebrow.resize(760, 28);
@@ -164,8 +171,8 @@ function applySlideContent(frame, slide, index, theme) {
   }
 
   const bodyTop = slide.subtitle ? title.y + title.height + 120 : title.y + title.height + 56;
-  const bodyItems = slide.body ?? [];
-  bodyItems.slice(0, 5).forEach((item, itemIndex) => {
+  const bodyItems = slide.body || [];
+  bodyItems.slice(0, 5).forEach(function (item, itemIndex) {
     const line = createText(item, 24, theme.foreground, "Regular");
     line.x = 156;
     line.y = bodyTop + itemIndex * 54;
@@ -206,12 +213,14 @@ function applySlideContent(frame, slide, index, theme) {
 }
 
 function resolveFrame(frameId, slideIndex) {
-  const id = frameId ?? (slideIndex !== undefined ? generatedFrameIds[slideIndex] : undefined);
+  const id = frameId !== undefined && frameId !== null
+    ? frameId
+    : (slideIndex !== undefined ? generatedFrameIds[slideIndex] : undefined);
   if (!id) throw new Error("No frame id or slide index was provided.");
 
   const node = figma.getNodeById(id);
   if (!node || node.type !== "FRAME") {
-    throw new Error(`Frame not found: ${id}`);
+    throw new Error("Frame not found: " + id);
   }
   return node;
 }
@@ -226,7 +235,8 @@ function createText(content, fontSize, color, style) {
   return node;
 }
 
-function titleSizeForLayout(layout = "content") {
+function titleSizeForLayout(layout) {
+  layout = layout || "content";
   if (layout === "title" || layout === "closing") return 64;
   if (layout === "section") return 56;
   if (layout === "metric") return 48;
@@ -234,10 +244,10 @@ function titleSizeForLayout(layout = "content") {
 }
 
 function setSlidePluginData(frame, slide) {
-  frame.setPluginData("title", slide.title ?? "");
-  frame.setPluginData("subtitle", slide.subtitle ?? "");
-  frame.setPluginData("body", JSON.stringify(slide.body ?? []));
-  frame.setPluginData("layout", slide.layout ?? "content");
+  frame.setPluginData("title", slide.title || "");
+  frame.setPluginData("subtitle", slide.subtitle || "");
+  frame.setPluginData("body", JSON.stringify(slide.body || []));
+  frame.setPluginData("layout", slide.layout || "content");
 }
 
 function getPluginData(node, key) {
@@ -248,7 +258,9 @@ function hexToRgb(hex) {
   const normalized = hex.replace("#", "");
   const value = Number.parseInt(
     normalized.length === 3
-      ? normalized.split("").map((character) => character + character).join("")
+      ? normalized.split("").map(function (character) {
+        return character + character;
+      }).join("")
       : normalized,
     16
   );
@@ -258,4 +270,19 @@ function hexToRgb(hex) {
     g: ((value >> 8) & 255) / 255,
     b: (value & 255) / 255
   };
+}
+
+function padSlideNumber(value) {
+  return value < 10 ? "0" + value : String(value);
+}
+
+function mergeSlide(target, source) {
+  if (!source) return target;
+  if (source.title !== undefined) target.title = source.title;
+  if (source.subtitle !== undefined) target.subtitle = source.subtitle;
+  if (source.body !== undefined) target.body = source.body;
+  if (source.notes !== undefined) target.notes = source.notes;
+  if (source.layout !== undefined) target.layout = source.layout;
+  if (source.imagePath !== undefined) target.imagePath = source.imagePath;
+  return target;
 }
