@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: suits-figma-mcp
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install --package-lock=false --ignore-scripts
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: MCP_HTTP_MODE
+        value: "true"
+      - key: FIGMA_BRIDGE_PATH
+        value: /figma
+      - key: FIGMA_BRIDGE_TIMEOUT_MS
+        value: "30000"
