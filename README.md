@@ -41,3 +41,25 @@ Open the Figma plugin, click `Connect`, then call the MCP tools from your client
 - `export_frames`
 
 The server is intentionally dependency-free for the initial scaffold and runs directly on Node 24.
+
+## Render Hosting
+
+This repo includes `render.yaml` for a Render web service.
+
+Deploy the GitHub repo on Render as a Blueprint or create a Web Service manually:
+
+- Root directory: `server`
+- Build command: `npm install --package-lock=false --ignore-scripts`
+- Start command: `npm start`
+- Health check path: `/health`
+- Environment variable: `MCP_HTTP_MODE=true`
+
+After deploy, use these URLs:
+
+```text
+MCP server URL: https://YOUR-RENDER-SERVICE.onrender.com/sse
+Figma bridge URL: wss://YOUR-RENDER-SERVICE.onrender.com/figma
+Health check: https://YOUR-RENDER-SERVICE.onrender.com/health
+```
+
+In the Custom MCP app form, choose `Server URL`, paste the `/sse` URL, and set authentication to `None`.
