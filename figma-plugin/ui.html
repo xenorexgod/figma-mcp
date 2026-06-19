@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        padding: 20px;
+        background: var(--figma-color-bg);
+        color: var(--figma-color-text);
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        line-height: 1.25;
+      }
+
+      p {
+        margin: 0 0 16px;
+        color: var(--figma-color-text-secondary);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      label {
+        display: block;
+        margin: 14px 0 6px;
+        color: var(--figma-color-text-secondary);
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      input {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 34px;
+        border: 1px solid var(--figma-color-border);
+        border-radius: 6px;
+        padding: 8px 10px;
+        background: var(--figma-color-bg);
+        color: var(--figma-color-text);
+      }
+
+      button {
+        width: 100%;
+        min-height: 36px;
+        margin-top: 16px;
+        border: 0;
+        border-radius: 6px;
+        background: var(--figma-color-bg-brand);
+        color: var(--figma-color-text-onbrand);
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: var(--figma-color-bg-secondary);
+        color: var(--figma-color-text);
+      }
+
+      .status {
+        min-height: 42px;
+        margin-top: 16px;
+        border: 1px solid var(--figma-color-border);
+        border-radius: 6px;
+        padding: 10px;
+        color: var(--figma-color-text-secondary);
+        font-size: 12px;
+        line-height: 1.35;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Suits Deck Bridge</h1>
+    <p>Connect this plugin UI to the local MCP bridge, then run MCP tools from your client to create or update deck frames.</p>
+
+    <label for="bridgeUrl">Bridge WebSocket URL</label>
+    <input id="bridgeUrl" value="ws://127.0.0.1:4877" />
+
+    <button id="connect">Connect</button>
+    <button id="disconnect" class="secondary">Disconnect</button>
+
+    <div id="status" class="status">Disconnected.</div>
+
+    <script>
+      const bridgeUrlInput = document.getElementById("bridgeUrl");
+      const statusNode = document.getElementById("status");
+      const connectButton = document.getElementById("connect");
+      const disconnectButton = document.getElementById("disconnect");
+      let socket;
+
+      connectButton.onclick = () => {
+        connect();
+      };
+
+      disconnectButton.onclick = () => {
+        socket?.close();
+      };
+
+      window.onmessage = (event) => {
+        const pluginMessage = event.data.pluginMessage;
+        if (!pluginMessage || !socket || socket.readyState !== WebSocket.OPEN) return;
+        socket.send(JSON.stringify(pluginMessage));
+      };
+
+      function connect() {
+        socket?.close();
+        const url = bridgeUrlInput.value.trim();
+        socket = new WebSocket(url);
+        setStatus(`Connecting to ${url}...`);
+
+        socket.onopen = () => setStatus(`Connected to ${url}.`);
+        socket.onclose = () => setStatus("Disconnected.");
+        socket.onerror = () => setStatus("Connection error. Confirm the MCP server is running.");
+        socket.onmessage = (event) => {
+          try {
+            parent.postMessage({ pluginMessage: JSON.parse(event.data) }, "*");
+          } catch {
+            setStatus("Received malformed bridge message.");
+          }
+        };
+      }
+
+      function setStatus(value) {
+        statusNode.textContent = value;
+      }
+    </script>
+  </body>
+</html>
