@@ -28,6 +28,7 @@ export interface FigmaBridgeOptions {
   host: string;
   port: number;
   timeoutMs: number;
+  path?: string;
 }
 
 export class FigmaBridge extends EventEmitter {
@@ -45,9 +46,16 @@ export class FigmaBridge extends EventEmitter {
     if (this.server) return;
 
     this.server = createServer();
-    this.server.on("upgrade", (request, socket) => this.handleUpgrade(request, socket));
+    this.attachToServer(this.server);
     this.server.on("listening", () => this.emit("listening", this.options));
     this.server.listen(this.options.port, this.options.host);
+  }
+
+  attachToServer(server: Server): void {
+    server.on("upgrade", (request, socket) => {
+      if (!this.isBridgeRequest(request)) return;
+      this.handleUpgrade(request, socket);
+    });
   }
 
   stop(): void {
@@ -144,6 +152,12 @@ export class FigmaBridge extends EventEmitter {
         this.emit("plugin-disconnected");
       }
     });
+  }
+
+  private isBridgeRequest(request: IncomingMessage): boolean {
+    const bridgePath = this.options.path ?? "/";
+    const requestUrl = new URL(request.url ?? "/", "http://localhost");
+    return requestUrl.pathname === bridgePath;
   }
 
   private parseFrames(buffer: Buffer): { messages: string[]; remaining: Buffer } {
